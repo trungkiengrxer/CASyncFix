@@ -142,8 +142,9 @@ a loaded CASyncFix has already patched.
 ## CI and releases
 
 `.github/workflows/build.yml` runs the tests and builds on every push and pull request (artifacts attached to the run).
-Pushing a tag `vX.Y.Z` that matches `CFBundleVersion` in `CASyncFix/Info.plist` also publishes a GitHub Release with
-`CASyncFix-X.Y.Z-RELEASE.zip` and its dSYM.
+On a push to `main`, if the version in `CASyncFix/Info.plist` (and `build.sh`) has no release yet, it creates the tag
+`vX.Y.Z` and publishes a GitHub Release with `CASyncFix-X.Y.Z-RELEASE.zip` and its dSYM. To release, bump the version
+and push.
 
 ## EETOff (experimental, not released)
 
