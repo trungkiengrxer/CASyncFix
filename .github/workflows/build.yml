@@ -1,0 +1,63 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  LILU_VERSION: 1.7.2
+  MACKERNELSDK_COMMIT: 05094e5e88cec7caedbfb35e8449ed0db94bf95b
+
+jobs:
+  build:
+    # Intel runner: the freeze blob's host tests use x86 inline asm.
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch Lilu SDK and MacKernelSDK
+        run: |
+          mkdir -p deps
+          curl -fsSL -o deps/lilu.zip \
+            "https://github.com/acidanthera/Lilu/releases/download/$LILU_VERSION/Lilu-$LILU_VERSION-DEBUG.zip"
+          unzip -q deps/lilu.zip -d deps/lilu
+          git clone -q https://github.com/acidanthera/MacKernelSDK deps/MacKernelSDK
+          git -C deps/MacKernelSDK checkout -q "$MACKERNELSDK_COMMIT"
+          echo "LILU_SDK=$PWD/deps/lilu/Lilu.kext/Contents/Resources" >> "$GITHUB_ENV"
+          echo "KERNEL_SDK=$PWD/deps/MacKernelSDK" >> "$GITHUB_ENV"
+
+      - name: Test
+        run: ./Tests/run_all.sh
+
+      - name: Build
+        run: ./build.sh
+
+      - name: Package
+        run: |
+          VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' CASyncFix/Info.plist)
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          mkdir -p dist
+          (cd build && ditto -c -k --keepParent CASyncFix.kext ../dist/CASyncFix-$VERSION-RELEASE.zip)
+          (cd build && ditto -c -k --keepParent CASyncFix.kext.dSYM ../dist/CASyncFix-$VERSION-dSYM.zip)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CASyncFix-${{ env.VERSION }}
+          path: dist/*
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$GITHUB_REF_NAME" != "v$VERSION" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match CASyncFix/Info.plist version $VERSION"; exit 1
+          fi
+          gh release create "$GITHUB_REF_NAME" dist/* --title "CASyncFix $VERSION" --notes \
+            "Requires macOS 26.6 (25G72). On any other build the SkyLight patches stay off; see README.md."

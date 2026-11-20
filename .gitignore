@@ -1,0 +1,29 @@
+.DS_Store
+build/
+
+# Local research data: Apple shared caches and disassembly, Instruments traces, notes, measurement output
+re/
+traces/
+docs/
+.superpowers/
+efi-dgpu-off/
+/*.txt
+__pycache__/
+
+# Compiled tools (build commands are in each source file's header)
+/cpu-clock-test
+/tools/barriertest
+/tools/bwtest
+/tools/check_patch
+/tools/cpucontend
+/tools/cpuid6
+/tools/devcaps
+/tools/fragwritetest
+/tools/gpuload
+/tools/rogtest
+/tools/smctemp
+/tools/staticaddr
+/tools/symhost
+/tools/tpcadence
+/tools/uiguard
+/tools/wsdebug
